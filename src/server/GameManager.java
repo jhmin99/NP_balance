@@ -1,22 +1,22 @@
-package game;
+package server;
+
+import common.Game;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class GameManager {
     private static final String GAME_FILE = "Game.dat";
 
-    private List<Game> games;
+    private ConcurrentHashMap<String, Game> games;
     private ConcurrentHashMap<Socket, ObjectOutputStream> outputStreamMap;
 
     public GameManager() {
         games = loadGames();
-        if (games == null) games = new ArrayList<>();
-        for(Game game : games){
+        if (games == null) games = new ConcurrentHashMap<>();
+        for(Game game : games.values()){
             game.initSocketMap();
         }
         this.outputStreamMap = new ConcurrentHashMap<>();
@@ -30,9 +30,9 @@ public class GameManager {
         return outputStreamMap.put(socket, objectOutputStream);
     }
 
-    private List<Game> loadGames() {
+    private ConcurrentHashMap<String, Game> loadGames() {
             try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(GAME_FILE))) {
-            return (List<Game>) ois.readObject();
+            return (ConcurrentHashMap<String, Game>) ois.readObject();
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("Game file not found or empty. Starting fresh.");
             return null;
@@ -47,12 +47,12 @@ public class GameManager {
         }
     }
 
-    public List<Game> getAllGames(){
-        return new ArrayList<>(games);
+    public ConcurrentHashMap<String, Game> getAllGames(){
+        return games;
     }
 
     public void addGame(Game game) {
-        games.add(game);
+        games.put(game.getGameId(), game);
         saveGames();
     }
 
@@ -72,8 +72,16 @@ public class GameManager {
         }
     }
 
+    public void addComment(String gameId, String writer, String message){
+        Game game = findGameById(gameId);
+        if (game != null) {
+            game.addComment(writer, message);
+            saveGames();
+        }
+    }
+
     public Game findGameById(String gameId) {
-        return games.stream().filter(game -> game.getGameId().equals(gameId)).findFirst().orElse(null);
+        return games.get(gameId);
     }
 
     public ConcurrentHashMap<String, Socket> getSocketMapById(String gameId){

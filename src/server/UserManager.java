@@ -1,4 +1,6 @@
-package user;
+package server;
+
+import common.User;
 
 import java.io.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,9 +43,13 @@ public class UserManager {
     private void saveUsers() {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(AUTH_FILE))) {
             oos.writeObject(users);
-            System.out.println("user.User data saved.");
+            System.out.println("common.User data saved.");
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public ConcurrentHashMap<String, User> getAllUsers() {
+        return users;
     }
 }

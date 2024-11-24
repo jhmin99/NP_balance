@@ -1,11 +1,10 @@
-import game.GameManager;
-import user.UserManager;
+package server;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class Main {
+public class ServerMain {
     private static final int PORT = 8081;
 
     public static void main(String[] args) {

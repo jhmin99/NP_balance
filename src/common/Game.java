@@ -1,10 +1,8 @@
-package game;
+package common;
 
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Game implements Serializable {
@@ -14,16 +12,18 @@ public class Game implements Serializable {
     private String author;
     private String title;
     private int likes;
-    private List<Candidate> candidates;
+    private Candidate candidate1;
+    private Candidate candidate2;
+    private Map<Integer, Comment> comments;
 
     public Game(String gameId, String author, String title) {
         this.socketMap = new ConcurrentHashMap<>();
+        this.comments = new ConcurrentHashMap<>();
 
         this.gameId = gameId;
         this.author = author;
         this.title = title;
         this.likes = 0;
-        this.candidates = new ArrayList<>();
     }
 
     public ConcurrentHashMap<String, Socket> getSocketMap() {
@@ -51,19 +51,37 @@ public class Game implements Serializable {
         likes++;
     }   // like -> 낙장불입 취소 불가능
 
-    public List<Candidate> getCandidates() {
-        return candidates;
-    }
-
-    public void addCandidate(Candidate candidate) {
-        candidates.add(candidate);
-    }
-
     public void addVote(int candidateNumber) {
-        candidates.get(candidateNumber - 1).addVote();
+        if(candidateNumber == 1) candidate1.addVote();
+        if(candidateNumber == 2) candidate2.addVote();
+    }
+
+    public void addComment(String writer, String content) {
+        Comment comment = Comment.from(comments.size(), writer, content);
+        comments.put(comment.getCommentId(), comment);
     }
 
     public void initSocketMap() {
         this.socketMap = new ConcurrentHashMap<>();
+    }
+
+    public void setCandidate1(Candidate candidate1) {
+        this.candidate1 = candidate1;
+    }
+
+    public void setCandidate2(Candidate candidate2) {
+        this.candidate2 = candidate2;
+    }
+
+    public Candidate getCandidate1() {
+        return candidate1;
+    }
+
+    public Candidate getCandidate2() {
+        return candidate2;
+    }
+
+    public int getVotesNum(){
+        return candidate1.getVotes() + candidate2.getVotes();
     }
 }
