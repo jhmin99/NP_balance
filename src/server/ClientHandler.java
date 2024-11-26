@@ -10,6 +10,7 @@ import java.io.*;
 import java.net.Socket;
 import java.util.Collection;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -112,7 +113,8 @@ public class ClientHandler extends Thread {
     }
 
     private void sendAllGameList() throws IOException {
-        ConcurrentHashMap<String, Game> allGames = gameManager.getAllGames();
+        ConcurrentHashMap<String, Game> allGameMap = gameManager.getAllGames();
+        HashMap<String, Game> allGames = new HashMap<>(allGameMap);
 
         synchronized (output) {
             output.writeObject("GAME_LIST_SUCCESS");
@@ -196,7 +198,8 @@ public class ClientHandler extends Thread {
     }
 
     private void sendAllUserList() throws IOException {
-        ConcurrentHashMap<String, User> allUsers = userManager.getAllUsers();
+        ConcurrentHashMap<String, User> allUserMap = userManager.getAllUsers();
+        HashMap<String, User> allusers = new HashMap<>(allUserMap);
 
         synchronized (output) {
             output.writeObject("USER_LIST_SUCCESS");
