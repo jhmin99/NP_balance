@@ -1,5 +1,6 @@
 package server;
 
+import common.Comment;
 import common.Game;
 
 import java.io.*;
@@ -91,5 +92,14 @@ public class GameManager {
 
     public String generateGameId(){         // 음 뺄까
         return UUID.randomUUID().toString();
+    }
+
+    public void addLikeComment(String gameId, int commentId) {
+        Game game = findGameById(gameId);
+        Comment comment = game.getCommentById(commentId);
+        if (comment != null) {
+            comment.addLike();
+            saveGames();
+        }
     }
 }
