@@ -84,4 +84,8 @@ public class Game implements Serializable {
     public int getVotesNum(){
         return candidate1.getVotes() + candidate2.getVotes();
     }
+
+    public Comment getCommentById(int commentId) {
+        return comments.get(commentId);
+    }
 }
