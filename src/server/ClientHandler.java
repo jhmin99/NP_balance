@@ -199,7 +199,7 @@ public class ClientHandler extends Thread {
 
     private void sendAllUserList() throws IOException {
         ConcurrentHashMap<String, User> allUserMap = userManager.getAllUsers();
-        HashMap<String, User> allusers = new HashMap<>(allUserMap);
+        HashMap<String, User> allUsers = new HashMap<>(allUserMap);
 
         synchronized (output) {
             output.writeObject("USER_LIST_SUCCESS");
