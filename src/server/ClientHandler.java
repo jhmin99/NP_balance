@@ -9,7 +9,6 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.Socket;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -62,7 +61,7 @@ public class ClientHandler extends Thread {
                     case "LIKE" -> handleLike();                        // GAME 객체 브로드캐스트 또는 분리
                     case "VOTE" -> handleVote();                        // GAME 객체 브로드캐스트 또는 분리
                     case "CHAT" -> handleChat();                        // GAME 객체 브로드캐스트 또는 분리
-                    
+
                     // case "LIKE_CHAT" -> 이것도 만들어서 각 Comment 객체의 likes 를 수정하도록 해줘야 함
                     //                  -> 당연하게도, like 이후에는 위처럼 broadcast 처리가 되어야 한다???
 
@@ -95,8 +94,7 @@ public class ClientHandler extends Thread {
     }
 
     private void sendAllGameList() throws IOException {
-        ConcurrentHashMap<String, Game> allGameMap = gameManager.getAllGames();
-        HashMap<String, Game> allGames = new HashMap<>(allGameMap);
+        ConcurrentHashMap<String, Game> allGames = gameManager.getAllGames();
 
         synchronized (output) {
             output.writeObject("GAME_LIST_SUCCESS");
@@ -106,8 +104,7 @@ public class ClientHandler extends Thread {
     }
 
     private void sendAllUserList() throws IOException {
-        ConcurrentHashMap<String, User> allUserMap = userManager.getAllUsers();
-        HashMap<String, User> allusers = new HashMap<>(allUserMap);
+        ConcurrentHashMap<String, User> allusers = userManager.getAllUsers();
 
         synchronized (output) {
             output.writeObject("USER_LIST_SUCCESS");
