@@ -1,6 +1,7 @@
 package server;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -13,6 +14,7 @@ public class ServerMain {
 
         try {
             ServerSocket serverSocket = new ServerSocket(PORT);
+            // ServerSocket serverSocket = new ServerSocket(PORT, 50, InetAddress.getByName("0.0.0.0")); // 다른 기기 접근
             System.out.println("Server is listening on port " + PORT);
 
             while (true) {

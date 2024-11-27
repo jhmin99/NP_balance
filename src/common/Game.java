@@ -16,6 +16,8 @@ public class Game implements Serializable {
     private Candidate candidate2;
     private Map<Integer, Comment> comments;
 
+    public Game() {}
+
     public Game(String gameId, String author, String title) {
         this.socketMap = new ConcurrentHashMap<>();
         this.comments = new ConcurrentHashMap<>();
@@ -83,5 +85,9 @@ public class Game implements Serializable {
 
     public int getVotesNum(){
         return candidate1.getVotes() + candidate2.getVotes();
+    }
+
+    public Comment getCommentById(int commentId) {
+        return comments.get(commentId);
     }
 }
