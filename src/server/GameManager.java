@@ -12,94 +12,123 @@ public class GameManager {
     private static final String GAME_FILE = "Game.dat";
 
     private ConcurrentHashMap<String, Game> games;
-    private ConcurrentHashMap<Socket, ObjectOutputStream> outputStreamMap;
+    private final ConcurrentHashMap<String, ConcurrentHashMap<String, Socket>> socketMaps = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Socket, ObjectOutputStream> outputStreamMap = new ConcurrentHashMap<>();
 
     public GameManager() {
-        games = loadGames();
-        if (games == null) games = new ConcurrentHashMap<>();
-        for(Game game : games.values()){
-            game.initSocketMap();
-        }
-        this.outputStreamMap = new ConcurrentHashMap<>();
-    }
-
-    public ObjectOutputStream getOOS(Socket socket){
-        return outputStreamMap.get(socket);
-    }
-
-    public ObjectOutputStream addOOS(Socket socket, ObjectOutputStream objectOutputStream){
-        return outputStreamMap.put(socket, objectOutputStream);
-    }
-
-    private ConcurrentHashMap<String, Game> loadGames() {
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(GAME_FILE))) {
-            return (ConcurrentHashMap<String, Game>) ois.readObject();
-        } catch (IOException | ClassNotFoundException e) {
-            System.out.println("Game file not found or empty. Starting fresh.");
-            return null;
+        this.games = loadGames();
+        if (this.games == null) {
+            this.games = new ConcurrentHashMap<>();
         }
     }
 
-    private void saveGames() {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(GAME_FILE))) {
-            oos.writeObject(games);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void reloadGames() {
+        this.games = loadGames();
+        System.out.println("Games reloaded from file.");
     }
 
-    public ConcurrentHashMap<String, Game> getAllGames(){
+    public ConcurrentHashMap<String, Game> getAllGames() {
         return games;
-    }
-
-    public void addGame(Game game) {
-        games.put(game.getGameId(), game);
-        saveGames();
-    }
-
-    public void addLikeToGame(String gameId) {
-        Game game = findGameById(gameId);
-        if (game != null) {
-            game.like();
-            saveGames();
-        }
-    }
-
-    public void addVote(String gameId, int candidateNumber) {
-        Game game = findGameById(gameId);
-        if (game != null) {
-            game.addVote(candidateNumber);
-            saveGames();
-        }
-    }
-
-    public void addComment(String gameId, String writer, String message){
-        Game game = findGameById(gameId);
-        if (game != null) {
-            game.addComment(writer, message);
-            saveGames();
-        }
     }
 
     public Game findGameById(String gameId) {
         return games.get(gameId);
     }
 
-    public ConcurrentHashMap<String, Socket> getSocketMapById(String gameId){
-        Game game = findGameById(gameId);
-        return game.getSocketMap();
+    public void addGame(Game game) {
+        games.put(game.getGameId(), game);
+        saveGames();
+        reloadGames();
     }
 
-    public String generateGameId(){         // 음 뺄까
-        return UUID.randomUUID().toString();
+    public void addComment(String gameId, String writer, String message) {
+        Game game = findGameById(gameId);
+        if (game == null) {
+            throw new IllegalArgumentException("Game not found with ID: " + gameId);
+        }
+        game.addComment(writer, message);
+        saveGames();
+        reloadGames();
+    }
+
+    public void addLikeToGame(String gameId) {
+        Game game = findGameById(gameId);
+        if (game == null) {
+            throw new IllegalArgumentException("Game not found with ID: " + gameId);
+        }
+        game.like();
+        saveGames();
+        reloadGames();
+    }
+
+    public void addVote(String gameId, int candidateNumber) {
+        Game game = findGameById(gameId);
+        if (game == null) {
+            throw new IllegalArgumentException("Game not found with ID: " + gameId);
+        }
+        game.addVote(candidateNumber);
+        saveGames();
+        reloadGames();
     }
 
     public void addLikeComment(String gameId, int commentId) {
         Game game = findGameById(gameId);
+        if (game == null) {
+            throw new IllegalArgumentException("Game not found with ID: " + gameId);
+        }
         Comment comment = game.getCommentById(commentId);
-        if (comment != null) {
-            comment.addLike();
-            saveGames();
+        if (comment == null) {
+            throw new IllegalArgumentException("Comment not found with ID: " + commentId);
+        }
+        comment.addLike();
+        saveGames();
+        reloadGames();
+    }
+
+    public void addSocketToGame(String gameId, String username, Socket socket) {
+        socketMaps.putIfAbsent(gameId, new ConcurrentHashMap<>());
+        ConcurrentHashMap<String, Socket> socketMap = socketMaps.get(gameId);
+        socketMap.put(username, socket);
+        System.out.println("Added socket for user " + username + " in game " + gameId);
+    }
+
+    public void removeSocketFromGame(String gameId, String username) {
+        ConcurrentHashMap<String, Socket> socketMap = socketMaps.get(gameId);
+        if (socketMap != null) {
+            socketMap.remove(username);
+            System.out.println("Removed socket for user " + username + " in game " + gameId);
+        }
+    }
+
+    public ConcurrentHashMap<String, Socket> getSocketMapById(String gameId) {
+        return socketMaps.get(gameId);
+    }
+
+    public ObjectOutputStream getOOS(Socket socket) {
+        return outputStreamMap.get(socket);
+    }
+
+    public void addOOS(Socket socket, ObjectOutputStream oos) {
+        outputStreamMap.put(socket, oos);
+    }
+
+    private ConcurrentHashMap<String, Game> loadGames() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(GAME_FILE))) {
+            return (ConcurrentHashMap<String, Game>) ois.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Game file not found or empty. Starting fresh.");
+            return null;
+        }
+    }
+    public String generateGameId(){
+        return UUID.randomUUID().toString();
+    }
+    private void saveGames() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(GAME_FILE))) {
+            oos.writeObject(games);
+            System.out.println("Games saved successfully.");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
