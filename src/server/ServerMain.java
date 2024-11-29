@@ -6,7 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class ServerMain {
-    private static final int PORT = 8081;
+    private static final int PORT = 8080;
 
     public static void main(String[] args) {
         UserManager userManager = new UserManager();
