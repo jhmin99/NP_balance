@@ -159,7 +159,8 @@ public class ClientHandler extends Thread {
     private void sendAllUserList() throws IOException {
         synchronized (output) {  // 동기화 추가
             sendResponse("USER_LIST_SUCCESS");
-            output.writeObject(userManager.getAllUsers());
+            HashMap<String, User> userHashMap = new HashMap<>(userManager.getAllUsers());
+            output.writeObject(userHashMap);
             output.flush();
         }
     }

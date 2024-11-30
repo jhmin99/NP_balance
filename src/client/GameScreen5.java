@@ -56,8 +56,8 @@ public class GameScreen5 extends GameScreen {
 				out.writeObject("USER_LIST");
 				out.flush();
 
-				_userList = (HashMap<String, User>) in.readObject();
 				String response = (String) in.readObject();
+				_userList = (HashMap<String, User>) in.readObject();
 
 				if ("USER_LIST_SUCCESS".equals(response)) {
 					rankingPanel.removeAll();
