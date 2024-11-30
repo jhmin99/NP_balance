@@ -10,6 +10,7 @@ public class User implements Serializable {
     private List<String> createdGameIds;
     private List<String> playedGameIds;
     private int totalLikes;
+    private String currentGameId;
 
     public User() {
         this.createdGameIds = new ArrayList<>();
@@ -37,6 +38,11 @@ public class User implements Serializable {
         this.totalLikes = totalLikes;
     }
 
+    public void setCurrentGameId(String gameId){
+        this.currentGameId = gameId;
+    }
+
+
     public User(String name, String password) {
         this.name = name;
         this.password = password;
@@ -44,9 +50,20 @@ public class User implements Serializable {
         this.playedGameIds = new ArrayList<>();
         this.totalLikes = 0;
     }
+    // 서버에서 데이터를 기반으로 초기화하는 메서드
+    public void loadFrom(User other) {
+        this.name = other.name;
+        this.password = other.password;
+        this.createdGameIds = new ArrayList<>(other.createdGameIds); // 복사
+        this.playedGameIds = new ArrayList<>(other.playedGameIds); // 복사
+        this.totalLikes = other.totalLikes;
+        this.currentGameId = other.currentGameId;
+    }
+
 
     public void addCreatedGameId(String gameId){
         createdGameIds.add(gameId);
+
     }
 
     public void addPlayedGameId(String gameId){
@@ -72,6 +89,10 @@ public class User implements Serializable {
     public List<String> getPlayedGameIds() {
         return playedGameIds;
     }
+    public String getCurrentGameId(){
+        return this.currentGameId;
+    }
+
 
     public int getTotalLikes() {
         return totalLikes;

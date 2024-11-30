@@ -9,37 +9,40 @@ import java.net.Socket;
 import java.util.HashMap;
 
 public class ClientMain {
-	
 	private static final String SERVER_ADDRESS = "localhost";
-	private static final int PORT = 8081;
-	
+	private static final int PORT = 8080;
 	private static Socket socket;
-	private static ObjectInputStream in;
 	private static ObjectOutputStream out;
+	private static ObjectInputStream in;
 
 	public static void main(String[] args) {
-		
 		try {
 			socket = new Socket(SERVER_ADDRESS, PORT);
 			out = new ObjectOutputStream(socket.getOutputStream());
-			in = new ObjectInputStream(socket.getInputStream());
-		} catch (Exception e1) {
-			e1.printStackTrace();
+			out.flush();
+			ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+
+			User user = new User();
+			HashMap<String, Game> gameList = new HashMap<>();
+			HashMap<String, User> userList = new HashMap<>();
+			GameScreen1 gameScreen1 = new GameScreen1(out, in, "실시간 밸런스 게임", user, gameList, userList);
+			gameScreen1.showScreen();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.err.println("서버 연결 실패. 클라이언트를 종료합니다.");
 		}
-		
-		// DummyFile
-		HashMap<String, Game> dummyGList = new HashMap<>();
-		for (int i = 0; i < 5; i++) {
-			dummyGList.put("" + i, new Game("" + i, "title" + i, "author" + i));
-		}
-		
-		User user = new User();
-//		GameScreen1 gs1 = new GameScreen1(out, in, "실시간 밸런스 게임", user, null, null);
-//		gs1.showScreen();
-		
-		// 테스트 중
-//		GameScreen2 gs2 = new GameScreen2(out, in, "room2", user, dummyGList, null);
-//		gs2.showScreen();
 	}
 
+	// 소켓 및 스트림 닫기
+	public static void closeConnection() {
+		try {
+			if (in != null) in.close();
+			if (out != null) out.close();
+			if (socket != null) socket.close();
+			System.out.println("클라이언트 연결이 종료되었습니다.");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }
