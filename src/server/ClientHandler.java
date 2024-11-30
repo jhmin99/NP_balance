@@ -133,15 +133,17 @@ public class ClientHandler extends Thread {
         }
     }
 
-    private void sendGameListById() throws IOException {
-        if (username == null) {
+    private void sendGameListById() throws IOException, ClassNotFoundException {
+        String targetName = (String) input.readObject();
+
+        if (targetName == null) {
             synchronized (output) {
                 sendResponse("GAME_LIST_ID_FAIL");
             }
             return;
         }
 
-        User currentUser = userManager.findUserByName(username);
+        User currentUser = userManager.findUserByName(targetName);
         if (currentUser == null) {
             synchronized (output) {
                 sendResponse("GAME_LIST_ID_FAIL");
@@ -151,7 +153,7 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("GAME_LIST_ID_SUCCESS");
-            output.writeObject(filterGamesById());
+            output.writeObject(filterGamesById(currentUser.getName()));
             output.flush();
         }
     }
@@ -379,8 +381,8 @@ public class ClientHandler extends Thread {
         System.out.println("Cleanup completed for client: " + username);
     }
 
-    private HashMap<String, Game> filterGamesById() {
-        User user = userManager.findUserByName(username);
+    private HashMap<String, Game> filterGamesById(String targetName) {
+        User user = userManager.findUserByName(targetName);
         HashMap<String, Game> filteredGames = new HashMap<>();
         if (user != null) {
             for (String gameId : user.getCreatedGameIds()) {

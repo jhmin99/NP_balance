@@ -98,7 +98,7 @@ public class GameScreen2 extends GameScreen {
 		logoutButton.addActionListener(e -> logout());
 		createGameButton.addActionListener(e -> showGameCreationScreen());
 		voteGameButton.addActionListener(e -> showVotedGamesScreen());
-		createdGameButton.addActionListener(e -> showCreatedGamesScreen());
+		createdGameButton.addActionListener(e -> showCreatedGamesScreen(_thisUser.getName()));
 		rankingButton.addActionListener(e -> showRankingScreen());
 		allGameButton.addActionListener(e -> fetchGameList(gameListPanel, scrollPane));
 	}
@@ -244,10 +244,11 @@ public class GameScreen2 extends GameScreen {
 	}
 
 
-	private void showCreatedGamesScreen() {
+	private void showCreatedGamesScreen(String username) {
 		try {
 			synchronized (_lock) {
 				out.writeObject("GAME_LIST_ID");  // '생성한 게임' 목록 요청
+				out.writeObject(username);  // '생성한 게임' 목록 요청
 				out.flush();
 
 				String response = (String) in.readObject();
