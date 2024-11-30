@@ -203,7 +203,7 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             output.writeObject("USER_LIST_SUCCESS");
-            output.writeObject(allusers);
+            output.writeObject(allUsers);
             output.flush();
         }
     }

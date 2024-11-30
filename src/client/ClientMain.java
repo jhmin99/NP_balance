@@ -34,8 +34,8 @@ public class ClientMain {
 		}
 		
 		User user = new User();
-//		GameScreen1 gs1 = new GameScreen1(out, in, "실시간 밸런스 게임", user, null, null);
-//		gs1.showScreen();
+		GameScreen1 gs1 = new GameScreen1(out, in, "실시간 밸런스 게임", user, null, null);
+		gs1.showScreen();
 		
 		// 테스트 중
 //		GameScreen2 gs2 = new GameScreen2(out, in, "room2", user, dummyGList, null);
