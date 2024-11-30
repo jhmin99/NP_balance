@@ -2,8 +2,11 @@ package common;
 
 import java.io.Serializable;
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class Game implements Serializable {
     private transient ConcurrentHashMap<String, Socket> socketMap;  // List 해도 되지만 혹시 귓말 등 추가 때문에 Map 사용
@@ -15,7 +18,7 @@ public class Game implements Serializable {
     private Candidate candidate1;
     private Candidate candidate2;
     private Map<Integer, Comment> comments;
-
+    private LocalDateTime createdTime;
     public Game() {}
 
     public Game(String gameId, String author, String title) {
@@ -26,6 +29,7 @@ public class Game implements Serializable {
         this.author = author;
         this.title = title;
         this.likes = 0;
+        this.createdTime = LocalDateTime.now();
     }
 
     public ConcurrentHashMap<String, Socket> getSocketMap() {
@@ -35,6 +39,9 @@ public class Game implements Serializable {
 
     public String getGameId() {
         return gameId;
+    }
+    public List<Comment> getComments() {
+        return comments.values().stream().collect(Collectors.toList());
     }
 
     public String getTitle() {
@@ -59,7 +66,7 @@ public class Game implements Serializable {
     }
 
     public void addComment(String writer, String content) {
-        Comment comment = Comment.from(comments.size(), writer, content);
+        Comment comment = Comment.from(writer, content);
         comments.put(comment.getCommentId(), comment);
     }
 
@@ -89,5 +96,9 @@ public class Game implements Serializable {
 
     public Comment getCommentById(int commentId) {
         return comments.get(commentId);
+    }
+
+    public LocalDateTime getCreatedTime() {
+        return createdTime;
     }
 }

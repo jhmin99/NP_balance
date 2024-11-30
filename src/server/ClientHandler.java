@@ -8,98 +8,89 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.Socket;
-import java.util.Collection;
-import java.util.List;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ClientHandler extends Thread {
-    private Socket socket;
-    private ObjectInputStream input;
-    private ObjectOutputStream output;
-    private UserManager userManager;
-    private GameManager gameManager;
+    private final Socket socket;
+    private final ObjectOutputStream output;
+    private final ObjectInputStream input;
+    private final UserManager userManager;
+    private final GameManager gameManager;
 
     private String username;
     private String currentRoomId;
 
-    public ClientHandler(Socket socket, UserManager userManager, GameManager gameManager) {
+    public ClientHandler(Socket socket, UserManager userManager, GameManager gameManager) throws IOException {
         this.socket = socket;
         this.userManager = userManager;
         this.gameManager = gameManager;
-        this.currentRoomId = "NOT_IN_ROOM";
+        this.output = new ObjectOutputStream(socket.getOutputStream());
+        this.input = new ObjectInputStream(socket.getInputStream());
+
+        // 소켓과 출력 스트림 매핑
+        gameManager.addOOS(socket, output);
     }
 
     @Override
     public void run() {
         try {
-            output = new ObjectOutputStream(socket.getOutputStream());
-            gameManager.addOOS(socket, output);
-            input = new ObjectInputStream(socket.getInputStream());
             while (true) {
-                System.out.println("Waiting for action...");
                 String action = (String) input.readObject();
                 System.out.println("Action received: " + action);
 
                 switch (action) {
-
-                    case "REGISTER","LOGIN" -> handleUserAuth(action);  // 성공, 실패 응답
-                    case "LOGOUT" -> handleLogout();                    // server.ClientHandler username 초기화 및 응답
-
-                    case "GAME_LIST" -> sendAllGameList();              // Game 리스트 (전체) 응답
-                    case "GAME_LIST_VOTED" -> sendGameListVoted();    // Game 리스트 (playedGameIds 필터링) 응답
-                    case "GAME_LIST_ID" -> sendGameListById();        // Game 리스트 (createdGameIds 필터링) 응답
-
-                    case "USER_LIST" -> sendAllUserList();               // User 해시맵 (전체) 응답
-
-                    case "ADD_GAME" -> addGame();                       // 성공, 실패 응답
-
-                    case "ENTER_GAME" -> handleClientEnterGame();       // 성공, 실패 응답
-                    case "EXIT_GAME" -> handleClientExitGame();         // 성공, 실패 응답
-
-                    case "GAME_DETAILS" -> sendGameDetails();           // GAME 객체 응답
-
-                    case "LIKE" -> handleLike();                        // GAME 객체 브로드캐스트 또는 분리
-                    case "VOTE" -> handleVote();                        // GAME 객체 브로드캐스트 또는 분리
-                    case "CHAT" -> handleChat();                        // GAME 객체 브로드캐스트 또는 분리
-                    
-                     case "LIKE_CHAT" -> handleLikeChat();
-                    // -> 이것도 만들어서 각 Comment 객체의 likes 를 수정하도록 해줘야 함
-                    //                  -> 당연하게도, like 이후에는 위처럼 broadcast 처리가 되어야 한다???
-
-                    default -> {
-                        System.out.println("Received action: " + action); // 요청 내용 출력
-                        output.writeObject("Invalid command");
-                        output.flush();
-                    }
+                    case "REGISTER", "LOGIN" -> handleUserAuth(action);
+                    case "LOGOUT" -> handleLogout();
+                    case "GAME_LIST" -> sendAllGameList();
+                    case "GAME_LIST_VOTED" -> sendGameListVoted();
+                    case "GAME_LIST_ID" -> sendGameListById();
+                    case "USER_LIST" -> sendAllUserList();
+                    case "ADD_GAME" -> addGame();
+                    case "ENTER_GAME" -> handleClientEnterGame();
+                    case "EXIT_GAME" -> handleClientExitGame();
+                    case "GAME_DETAILS" -> sendGameDetails();
+                    case "LIKE" -> handleLike();
+                    case "VOTE" -> handleVote();
+                    case "CHAT" -> handleChat();
+                    case "LIKE_CHAT" -> handleLikeChat();
+                    default -> handleInvalidCommand(action);
                 }
             }
+        } catch (EOFException e) {
+            System.err.println("Client disconnected.");
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
+        } finally {
+            cleanup();
         }
     }
 
     private void handleUserAuth(String action) throws IOException, ClassNotFoundException {
         String name = (String) input.readObject();
         String password = (String) input.readObject();
+
         boolean result = "REGISTER".equals(action) ?
                 userManager.registerUser(name, password) :
                 userManager.authenticateUser(name, password);
 
-        if (result) username = name; // LOGIN 이나 REGISTER 성공시에 server.ClientHandler 에서 username 기억
-        System.out.println("LOGIN USER NAME: "+username);
-
         synchronized (output) {
             output.writeObject(result ? action + "_SUCCESS" : action + "_FAIL");
             output.flush();
+
+            if (result && "LOGIN".equals(action)) {
+                username = name;
+                User authenticatedUser = userManager.findUserByName(name);
+                output.writeObject(authenticatedUser);
+                output.flush();
+            }
         }
-    }
+}
 
     private void handleLogout() throws IOException {
         if (username == null) {
             synchronized (output) {
-                output.writeObject("LOGOUT_FAIL");
+                sendResponse("LOGOUT_FAIL");
                 output.flush();
             }
             return;
@@ -107,108 +98,73 @@ public class ClientHandler extends Thread {
         username = null;
 
         synchronized (output) {
-            output.writeObject("LOGOUT_SUCCESS");
+            sendResponse("LOGOUT_SUCCESS");
             output.flush();
         }
     }
-
     private void sendAllGameList() throws IOException {
-        ConcurrentHashMap<String, Game> allGameMap = gameManager.getAllGames();
-        HashMap<String, Game> allGames = new HashMap<>(allGameMap);
-
         synchronized (output) {
-            output.writeObject("GAME_LIST_SUCCESS");
-            output.writeObject(allGames);
+            sendResponse("GAME_LIST_SUCCESS");
+            output.writeObject(gameManager.getAllGames());
             output.flush();
         }
     }
 
     private void sendGameListVoted() throws IOException {
-        // 유저가 아직 로그인을 안 했을 경우
         if (username == null) {
             synchronized (output) {
-                output.writeObject("GAME_LIST_VOTED_FAIL");
-                output.flush();
+                sendResponse("GAME_LIST_VOTED_FAIL");
             }
             return;
         }
 
         User currentUser = userManager.findUserByName(username);
-        // 현재 유저가 없을 경우
         if (currentUser == null) {
             synchronized (output) {
-                output.writeObject("GAME_LIST_VOTED_FAIL");
-                output.flush();
+                sendResponse("GAME_LIST_VOTED_FAIL");
             }
             return;
         }
 
-        List<String> playedGameIds = currentUser.getPlayedGameIds();
-        ConcurrentHashMap<String, Game> allGames = gameManager.getAllGames();
-        ConcurrentHashMap<String, Game> votedGames = new ConcurrentHashMap<>();
-
-        for (String gameId : playedGameIds) {
-            if (allGames.containsKey(gameId)) {
-                votedGames.put(gameId, allGames.get(gameId));
-            }
-        }
-
         synchronized (output) {
-            output.writeObject("GAME_LIST_VOTE_SUCCESS");
-            output.writeObject(votedGames);
+            sendResponse("GAME_LIST_VOTE_SUCCESS");
+            output.writeObject(filterGamesByVoted());
             output.flush();
         }
     }
 
     private void sendGameListById() throws IOException {
-        // 유저가 아직 로그인을 안 했을 경우
         if (username == null) {
             synchronized (output) {
-                output.writeObject("GAME_LIST_VOTED_FAIL");
-                output.flush();
+                sendResponse("GAME_LIST_ID_FAIL");
             }
             return;
         }
 
         User currentUser = userManager.findUserByName(username);
-        // 현재 유저가 없을 경우
         if (currentUser == null) {
             synchronized (output) {
-                output.writeObject("GAME_LIST_VOTED_FAIL");
-                output.flush();
+                sendResponse("GAME_LIST_ID_FAIL");
             }
             return;
         }
 
-        List<String> createdGameIds = currentUser.getCreatedGameIds();
-        ConcurrentHashMap<String, Game> allGames = gameManager.getAllGames();
-        ConcurrentHashMap<String, Game> createdGames = new ConcurrentHashMap<>();
-
-        for (String gameId : createdGameIds) {
-            if (allGames.containsKey(gameId)) {
-                createdGames.put(gameId, allGames.get(gameId));
-            }
-        }
-
         synchronized (output) {
-            output.writeObject("GAME_LIST_ID_SUCCESS");
-            output.writeObject(createdGames);
+            sendResponse("GAME_LIST_ID_SUCCESS");
+            output.writeObject(filterGamesById());
             output.flush();
         }
     }
 
     private void sendAllUserList() throws IOException {
-        ConcurrentHashMap<String, User> allUserMap = userManager.getAllUsers();
-        HashMap<String, User> allUsers = new HashMap<>(allUserMap);
-
-        synchronized (output) {
-            output.writeObject("USER_LIST_SUCCESS");
-            output.writeObject(allUsers);
+        synchronized (output) {  // 동기화 추가
+            sendResponse("USER_LIST_SUCCESS");
+            HashMap<String, User> userHashMap = new HashMap<>(userManager.getAllUsers());
+            output.writeObject(userHashMap);
             output.flush();
         }
     }
 
-    // 아예 Game 객체를 받을 것 인지 아님 지금 처럼 분할해서 올 것인지?
     private void addGame() throws IOException, ClassNotFoundException {
         String title = (String) input.readObject();
         String author = (String) input.readObject();
@@ -232,56 +188,60 @@ public class ClientHandler extends Thread {
 
         User user = userManager.findUserByName(username);
         user.addCreatedGameId(game.getGameId());
+        userManager.saveUsers();
+        userManager.reloadUsers();
 
         synchronized (output) {
-            output.writeObject("ADD_GAME_SUCCESS");
+            sendResponse("ADD_GAME_SUCCESS");
+            output.writeObject(game.getGameId());
             output.flush();
         }
     }
 
     private void handleClientEnterGame() throws IOException, ClassNotFoundException {
         String gameId = (String) input.readObject();
-        currentRoomId = gameId;
-        ConcurrentHashMap<String, Socket> socketMap = gameManager.getSocketMapById(gameId);
-        socketMap.put(username, socket);
+        if (gameId == null || gameId.isEmpty()) {
+            // gameId가 유효한지 체크
+            sendResponse("ENTER_GAME_FAIL");
+            return;
+        }
+        currentRoomId = gameId;  // currentRoomId를 gameId로 초기화
+
+        // 게임 ID가 유효한지 확인
+        Game game = gameManager.findGameById(gameId);
+        if (game == null) {
+            sendResponse("ENTER_GAME_FAIL");
+            return;
+        }
+        gameManager.addSocketToGame(gameId, username, socket);
+        User user = userManager.findUserByName(username);
+        user.setCurrentGameId(gameId);
+        userManager.saveUsers();
+        userManager.reloadUsers();
 
         synchronized (output) {
-            output.writeObject("ENTER_GAME_SUCCESS");
-            output.flush();
+            sendResponse("ENTER_GAME_SUCCESS");
         }
     }
 
-    private void handleClientExitGame() throws IOException, ClassNotFoundException {
-        String gameId = (String) input.readObject();
-        ConcurrentHashMap<String, Socket> socketMap = gameManager.getSocketMapById(gameId);
+    private void handleClientExitGame() throws IOException {
+        gameManager.removeSocketFromGame(currentRoomId, username);
+        currentRoomId = null;
 
-        if (socketMap.remove(username) != null) {
-            synchronized (output) {
-                output.writeObject("EXIT_GAME_SUCCESS");
-                output.flush();
-            }
-            // 방 상태 업데이트
-            currentRoomId = "NOT_IN_ROOM";
-        }
-        else {
-            synchronized (output) {
-                output.writeObject("EXIT_GAME_FAIL");
-                output.flush();
-            }
+        synchronized (output) {
+            sendResponse("EXIT_GAME_SUCCESS");
         }
     }
 
-    private void sendGameDetails() throws IOException, ClassNotFoundException {
-        String gameId = (String)input.readObject();
-        Game game = gameManager.findGameById(gameId);
-
-        if (game == null){
-            output.writeObject("GAME_DETAILS_FAIL");
-            output.flush();
-        }
-        else{
+    private void sendGameDetails() throws IOException {
+        Game game = gameManager.findGameById(currentRoomId);
+        if (game == null) {
             synchronized (output) {
-                output.writeObject("GAME_DETAILS_SUCCESS");
+                sendResponse("GAME_DETAILS_FAIL");
+            }
+        } else {
+            synchronized (output) {
+                sendResponse("GAME_DETAILS_SUCCESS");
                 output.writeObject(game);
                 output.flush();
             }
@@ -290,106 +250,160 @@ public class ClientHandler extends Thread {
 
     private void handleLike() throws IOException, ClassNotFoundException {
         String gameId = (String) input.readObject();
-
         Game game = gameManager.findGameById(gameId);
 
-        String createdUsername = game.getAuthor();
-        User user = userManager.findUserByName(createdUsername);
-        user.addLike();
-
-        try{
-            gameManager.addLikeToGame(gameId);
+        if (game == null) {
             synchronized (output) {
-                output.writeObject("LIKE_SUCCESS");
-                output.flush();
-                broadcastGameDetails();         // 이 broadcast 를 Game 객체 전체에 대해 보낼지
-                                                // 아니면 3개로 나누어 likes, candidates, chat 을 따로 관리할 지 정해야 함
+                sendResponse("LIKE_FAIL");
             }
-        }catch (Exception e){
-            synchronized (output) {
-                output.writeObject("LIKE_FAIL");
-                output.flush();
-            }
+            return; // 게임이 없으면 종료
         }
+
+        gameManager.addLikeToGame(gameId);
+        User user = userManager.findUserByName(gameManager.findGameById(gameId).getAuthor());
+        user.setTotalLikes(user.getTotalLikes() + 1);
+        userManager.saveUsers();
+        userManager.reloadUsers();
+
+        synchronized (output) {
+            sendResponse("LIKE_SUCCESS");
+        }
+        broadcastGameDetails(gameId);
     }
 
     private void handleVote() throws IOException, ClassNotFoundException {
         String gameId = (String) input.readObject();
         int candidateNumber = (int) input.readObject();
+        Game game = gameManager.findGameById(gameId);
 
-        try{
-            gameManager.addVote(gameId, candidateNumber);
-
-            User user = userManager.findUserByName(username);
-            user.addPlayedGameId(gameId);
-
+        if (game == null || candidateNumber < 1 || candidateNumber > 2) {  // 유효하지 않은 후보 번호
             synchronized (output) {
-                output.writeObject("VOTE_SUCCESS");
-                output.flush();
-                broadcastGameDetails();
+                sendResponse("VOTE_FAIL");
             }
-        }catch (Exception e){
-            synchronized (output) {
-                output.writeObject("VOTE_FAIL");
-                output.flush();
-            }
+            return; // 유효하지 않으면 종료
         }
+        gameManager.addVote(gameId, candidateNumber);
+        User user = userManager.findUserByName(username);
+
+        user.addPlayedGameId(gameId);
+        userManager.saveUsers();
+
+        synchronized (output) {
+            sendResponse("VOTE_SUCCESS");
+        }
+        broadcastGameDetails(gameId);
     }
 
     private void handleChat() throws IOException, ClassNotFoundException {
         String gameId = (String) input.readObject();
         String message = (String) input.readObject();
+        Game game = gameManager.findGameById(gameId);
 
-        try{
-            gameManager.addComment(gameId, username, message);
-
+        if (game == null || message == null || message.trim().isEmpty()) {  // 유효하지 않은 게임 또는 비어 있는 메시지
             synchronized (output) {
-                output.writeObject("CHAT_SUCCESS");
-                output.flush();
-                broadcastGameDetails();
+                sendResponse("CHAT_FAIL");
             }
-        }catch (Exception e){
-            synchronized (output) {
-                output.writeObject("CHAT_FAIL");
-                output.flush();
-            }
+            return; // 유효하지 않으면 종료
         }
+        gameManager.addComment(gameId, username, message);
+
+        synchronized (output) {
+            sendResponse("CHAT_SUCCESS");
+        }
+        broadcastGameDetails(gameId);
     }
 
     private void handleLikeChat() throws IOException, ClassNotFoundException {
         String gameId = (String) input.readObject();
         int commentId = (int) input.readObject();
+        Game game = gameManager.findGameById(gameId);
 
-        try {
-            gameManager.addLikeComment(gameId, commentId);
+        if (game == null || commentId < 0) {  // 유효하지 않은 게임 또는 댓글 번호
+            synchronized (output) {
+                sendResponse("LIKE_CHAT_FAIL");
+                System.out.println(game);
+                System.out.println(commentId);
+            }
+            return; // 유효하지 않으면 종료
+        }
+        gameManager.addLikeComment(gameId, commentId);
 
-            synchronized (output) {
-                output.writeObject("LIKE_CHAT_SUCCESS");
-                output.flush();
-                broadcastGameDetails();
-            }
-        } catch (Exception e) {
-            synchronized (output) {
-                output.writeObject("LIKE_CHAT_FAIL");
-                output.flush();
-            }
+        synchronized (output) {
+            sendResponse("LIKE_CHAT_SUCCESS");
+        }
+        broadcastGameDetails(gameId);
+    }
+
+    private void handleInvalidCommand(String action) throws IOException {
+        synchronized (output) {
+            sendResponse("Invalid command: " + action);
         }
     }
 
-    private void broadcastGameDetails() throws IOException {
-        Map<String, Socket> socketMap = gameManager.getSocketMapById(currentRoomId);
-        Collection<Socket> sockets = socketMap.values();
-        ObjectOutputStream sOutput = null;
+    private void broadcastGameDetails(String gameId) throws IOException {
+        gameManager.reloadGames();
+        ConcurrentHashMap<String, Socket> socketMap = gameManager.getSocketMapById(gameId);
 
-        for(Socket s : sockets){
-            sOutput = gameManager.getOOS(s);
-            Game game = gameManager.findGameById(currentRoomId);
+        if (socketMap == null || socketMap.isEmpty()) {
+            System.err.println("No clients connected to game ID: " + gameId);
+            return;
+        }
 
+        Game game = gameManager.findGameById(gameId);
+        if (game == null) {
+            System.err.println("Game not found for broadcasting: " + gameId);
+            return;
+        }
+
+        for (Socket s : socketMap.values()) {
+            ObjectOutputStream sOutput = gameManager.getOOS(s);
             synchronized (sOutput) {
                 sOutput.writeObject("BROADCAST_INFO");
                 sOutput.writeObject(game);
                 sOutput.flush();
             }
         }
+    }
+
+    private void sendResponse(String message) throws IOException {
+        synchronized (output) {  // 동기화 추가
+            output.writeObject(message);
+            output.flush();
+        }
+    }
+
+    private void cleanup() {
+        if (currentRoomId != null && username != null) {
+            gameManager.removeSocketFromGame(currentRoomId, username);
+        }
+        System.out.println("Cleanup completed for client: " + username);
+    }
+
+    private HashMap<String, Game> filterGamesById() {
+        User user = userManager.findUserByName(username);
+        HashMap<String, Game> filteredGames = new HashMap<>();
+        if (user != null) {
+            for (String gameId : user.getCreatedGameIds()) {
+                Game game = gameManager.findGameById(gameId);
+                if (game != null) {
+                    filteredGames.put(gameId, game);
+                }
+            }
+        }
+        return filteredGames;
+    }
+
+    private HashMap<String, Game> filterGamesByVoted() {
+        User user = userManager.findUserByName(username);
+        HashMap<String, Game> filteredGames = new HashMap<>();
+        if (user != null) {
+            for (String gameId : user.getPlayedGameIds()) {
+                Game game = gameManager.findGameById(gameId);
+                if (game != null) {
+                    filteredGames.put(gameId, game);
+                }
+            }
+        }
+        return filteredGames;
     }
 }

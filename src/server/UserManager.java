@@ -31,6 +31,10 @@ public class UserManager {
         return user != null && user.getPassword().equals(password);
     }
 
+    public void reloadUsers(){
+        loadUsers();
+        System.out.println("Users reloaded from file.");
+    }
     private ConcurrentHashMap<String, User> loadUsers() {
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(AUTH_FILE))) {
             return (ConcurrentHashMap<String, User>) ois.readObject();
@@ -40,7 +44,7 @@ public class UserManager {
         }
     }
 
-    private void saveUsers() {
+    public void saveUsers() {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(AUTH_FILE))) {
             oos.writeObject(users);
             System.out.println("common.User data saved.");
