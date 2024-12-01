@@ -23,41 +23,75 @@ public class GameScreen1 extends GameScreen {
 	public void showScreen() {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setSize(800, 500);
-		frame.setLayout(new BorderLayout());
+		frame.setLayout(new BorderLayout(10, 10));
 
-		// 메인 패널
+		// Create the main panel and set layout
 		JPanel mainPanel = new JPanel();
 		mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
 
+		// Add title label
 		JLabel titleLabel = new JLabel("실시간 밸런스 게임");
-		titleLabel.setFont(new Font("맑은 고딕", Font.BOLD, 24));
 		titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+		titleLabel.setFont(new Font("맑은 고딕", Font.BOLD, 24));
+		mainPanel.add(titleLabel);
 
+		// Add spacing
+		mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+		// Add ID input field
+		JLabel idLabel = new JLabel("아이디 입력");
+		idLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+		idLabel.setFont(new Font("맑은 고딕", Font.PLAIN, 18));
 		JTextField idField = new JTextField(20);
+		idField.setMaximumSize(new Dimension(300, 40));
+
+		mainPanel.add(idLabel);
+		mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+		mainPanel.add(idField);
+
+		// Add spacing
+		mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+		// Add password input field
+		JLabel passwordLabel = new JLabel("비밀번호 입력");
+		passwordLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+		passwordLabel.setFont(new Font("맑은 고딕", Font.PLAIN, 18));
 		JPasswordField passwordField = new JPasswordField(20);
+		passwordField.setMaximumSize(new Dimension(300, 40));
+
+		mainPanel.add(passwordLabel);
+		mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+		mainPanel.add(passwordField);
+
+		// Add spacing
+		mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+		// Add button panel for "유저 등록" and "게임 입장"
+		JPanel buttonPanel = new JPanel();
+		buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 0));
 
 		JButton registerButton = new JButton("유저 등록");
-		JButton loginButton = new JButton("로그인");
+		JButton enterGameButton = new JButton("게임 입장");
 
-		mainPanel.add(titleLabel);
-		mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
-		mainPanel.add(createLabeledField("아이디:", idField));
-		mainPanel.add(createLabeledField("비밀번호:", passwordField));
-		mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+		registerButton.setPreferredSize(new Dimension(120, 40));
+		enterGameButton.setPreferredSize(new Dimension(120, 40));
 
-		JPanel buttonPanel = new JPanel();
-		buttonPanel.setLayout(new FlowLayout());
 		buttonPanel.add(registerButton);
-		buttonPanel.add(loginButton);
+		buttonPanel.add(enterGameButton);
+
 		mainPanel.add(buttonPanel);
 
-		frame.add(mainPanel, BorderLayout.CENTER);
+		// Center the main panel in the frame
+		JPanel wrapperPanel = new JPanel(new GridBagLayout());
+		wrapperPanel.add(mainPanel);
+
+		frame.add(wrapperPanel);
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
 
 		// 이벤트 처리
 		registerButton.addActionListener(e -> handleUserRegistration(idField.getText(), new String(passwordField.getPassword())));
-		loginButton.addActionListener(e -> handleLogin(idField.getText(), new String(passwordField.getPassword())));
+		enterGameButton.addActionListener(e -> handleLogin(idField.getText(), new String(passwordField.getPassword())));
 	}
 
 	private void handleUserRegistration(String id, String password) {
