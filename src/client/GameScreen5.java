@@ -128,7 +128,6 @@ public class GameScreen5 extends GameScreen {
 		for (Map.Entry<String, User> entry : entries) {
 			String userId = entry.getKey();
 			User userInfo = entry.getValue();
-			System.out.println(userInfo.getTotalLikes());
 
 			JPanel room = new JPanel();
 			room.setLayout(new BorderLayout());

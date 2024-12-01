@@ -162,6 +162,7 @@ public class ClientHandler extends Thread {
         synchronized (output) {  // 동기화 추가
             sendResponse("USER_LIST_SUCCESS");
             HashMap<String, User> userHashMap = new HashMap<>(userManager.getAllUsers());
+            output.reset();
             output.writeObject(userHashMap);
             output.flush();
         }
