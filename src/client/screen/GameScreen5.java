@@ -161,7 +161,8 @@ public class GameScreen5 extends GameScreen {
 				String response = (String)in.readObject();
 				if (response.equals("GAME_LIST_ID_SUCCESS")) {
 					HashMap<String, Game> gameList = (HashMap<String, Game>)in.readObject();
-					GameScreen2 gs2 = new GameScreen2(out, in, id + "가 만든 방", _thisUser, _gameList, _userList);
+					GameScreen2 gs2 = new GameScreen2(out, in, id + "가 만든 방", _thisUser, gameList, _userList);
+					gs2.setCalledFromScreen5(true);
 					gs2.showScreen();
 					closeScreen();
 				} else if (response.equals("GAME_LIST_ID_FAIL")) {

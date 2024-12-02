@@ -16,6 +16,8 @@ public class GameScreen2 extends GameScreen {
 	private JPanel gameListPanel;  // 게임 목록 패널을 전역으로 선언
 	private JScrollPane scrollPane;  // 스크롤 패널을 전역으로 선언
 
+	private boolean calledFromScreen5 = false;	// Screen5에서 호출된 경우 리스트 재요청을 막기 위한 변수
+
 	public GameScreen2(ObjectOutputStream out, ObjectInputStream in, String gameScreenTitle, User thisUser,
 					   HashMap<String, Game> gameList, HashMap<String, User> userList) {
 		super(out, in, gameScreenTitle, thisUser, gameList, userList);
@@ -104,7 +106,13 @@ public class GameScreen2 extends GameScreen {
 	}
 
 	private void fetchGameList(JPanel gameListPanel, JScrollPane scrollPane) {
+		if(calledFromScreen5) {
+			updateGameListUI(gameListPanel, scrollPane);
+			setCalledFromScreen5(false);
+			return;
+		}
 		try {
+			frame.setTitle("게임 목록");
 			synchronized (_lock) {
 				out.writeObject("GAME_LIST");
 				out.flush();
@@ -303,5 +311,9 @@ public class GameScreen2 extends GameScreen {
 
 	private void logout() {
 		closeScreen();
+	}
+
+	public void setCalledFromScreen5(boolean bool){
+		calledFromScreen5 = bool;
 	}
 }
