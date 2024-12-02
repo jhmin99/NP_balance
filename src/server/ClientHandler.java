@@ -67,20 +67,20 @@ public class ClientHandler extends Thread {
     }
 
     private void handleUserAuth(String action) throws IOException, ClassNotFoundException {
-        String id = (String) input.readObject();
+        String name = (String) input.readObject();
         String password = (String) input.readObject();
 
         boolean result = "REGISTER".equals(action) ?
-                userManager.registerUser(id, password) :
-                userManager.authenticateUser(id, password);
+                userManager.registerUser(name, password) :
+                userManager.authenticateUser(name, password);
 
         synchronized (output) {
             output.writeObject(result ? action + "_SUCCESS" : action + "_FAIL");
             output.flush();
 
             if (result && "LOGIN".equals(action)) {
-                username = id;
-                User authenticatedUser = userManager.findUserByName(id);
+                username = name;
+                User authenticatedUser = userManager.findUserByName(name);
                 output.writeObject(authenticatedUser);
                 output.flush();
             }
@@ -154,7 +154,7 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("GAME_LIST_ID_SUCCESS");
-            output.writeObject(gameManager.filterGamesById(currentUser));
+            output.writeObject(filterGamesById(currentUser.getName()));
             output.flush();
         }
     }
@@ -163,6 +163,7 @@ public class ClientHandler extends Thread {
         synchronized (output) {  // 동기화 추가
             sendResponse("USER_LIST_SUCCESS");
             HashMap<String, User> userHashMap = new HashMap<>(userManager.getAllUsers());
+            output.reset();
             output.writeObject(userHashMap);
             output.flush();
         }
@@ -173,6 +174,7 @@ public class ClientHandler extends Thread {
         String author = (String) input.readObject();
         String candidate1Name = (String) input.readObject();
         String candidate2Name = (String) input.readObject();
+
         byte[] candidate1Data = (byte[]) input.readObject();
         byte[] candidate2Data = (byte[]) input.readObject();
 
@@ -195,6 +197,7 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("ADD_GAME_SUCCESS");
+            output.writeObject(game.getGameId());
             output.flush();
         }
     }
@@ -383,5 +386,33 @@ public class ClientHandler extends Thread {
             gameManager.removeSocketFromGame(currentRoomId, username);
         }
         System.out.println("Cleanup completed for client: " + username);
+    }
+
+    private HashMap<String, Game> filterGamesById(String targetName) {
+        User user = userManager.findUserByName(targetName);
+        HashMap<String, Game> filteredGames = new HashMap<>();
+        if (user != null) {
+            for (String gameId : user.getCreatedGameIds()) {
+                Game game = gameManager.findGameById(gameId);
+                if (game != null) {
+                    filteredGames.put(gameId, game);
+                }
+            }
+        }
+        return filteredGames;
+    }
+
+    private HashMap<String, Game> filterGamesByVoted() {
+        User user = userManager.findUserByName(username);
+        HashMap<String, Game> filteredGames = new HashMap<>();
+        if (user != null) {
+            for (String gameId : user.getPlayedGameIds()) {
+                Game game = gameManager.findGameById(gameId);
+                if (game != null) {
+                    filteredGames.put(gameId, game);
+                }
+            }
+        }
+        return filteredGames;
     }
 }
