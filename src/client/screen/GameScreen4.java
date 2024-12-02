@@ -22,7 +22,6 @@ public class GameScreen4 extends GameScreen {
 	private JLabel totalVotesLabel; // 총 투표 수 라벨
 	private Game currentGame; // 현재 게임 상태
 	private JLabel likeCountLabel;
-	private final ReentrantLock lock = new ReentrantLock(); // 데이터 동기화 락
 	private JPanel bestCommentSection;
 
 	private volatile boolean isStopped = false;
@@ -151,33 +150,31 @@ public class GameScreen4 extends GameScreen {
 
 	private void handleExitGame() {
 		try {
-				lock.lock();
+			synchronized (_lock) {
 				out.writeObject("EXIT_GAME");
 				out.flush();
+			}
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(frame, "뒤로 가기 처리 중 오류 발생", "오류", JOptionPane.ERROR_MESSAGE);
 			e.printStackTrace();
-		} finally {
-		lock.unlock();
 		}
+
 	}
 
 	private void handleLike() {
 		try {
-			lock.lock();
-			out.writeObject("LIKE");
-			out.writeObject(currentGame.getGameId());
-			out.flush();
+			synchronized (_lock) {
+				out.writeObject("LIKE");
+				out.writeObject(currentGame.getGameId());
+				out.flush();
 
-			// 게임 추천 수 증가 후 UI 업데이트
-			currentGame.like();  // 게임의 추천 수 증가
-			updateLikeLabel();  // 추천 수 레이블 업데이트
-
+				// 게임 추천 수 증가 후 UI 업데이트
+				currentGame.like();  // 게임의 추천 수 증가
+				updateLikeLabel();  // 추천 수 레이블 업데이트
+			}
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(frame, "추천 처리 중 오류 발생");
 			e.printStackTrace();
-		} finally {
-			lock.unlock();
 		}
 	}
 
@@ -234,30 +231,32 @@ public class GameScreen4 extends GameScreen {
 	private void updateGame(Game updatedGame) {
 
 		SwingUtilities.invokeLater(() -> {
-			lock.lock();
 			try {
-				if (updatedGame == null) return;
+			synchronized (_lock) {
 
-				this.currentGame = updatedGame;
+					if (updatedGame == null) return;
 
-				totalVotesLabel.setText("총 투표 수: " + currentGame.getVotesNum());
+					this.currentGame = updatedGame;
 
-				// 기존 후보자 패널 초기화 및 재배치
-				JSplitPane splitPane = (JSplitPane) frame.getContentPane().getComponent(1);
-				JPanel topPanel = (JPanel) splitPane.getTopComponent();
-				JPanel candidatePanel = (JPanel) topPanel.getComponent(1);
+					totalVotesLabel.setText("총 투표 수: " + currentGame.getVotesNum());
 
-				candidatePanel.removeAll();
-				candidatePanel.add(createCandidatePanel(currentGame.getCandidate1(), 1));
-				candidatePanel.add(createCandidatePanel(currentGame.getCandidate2(), 2));
+					// 기존 후보자 패널 초기화 및 재배치
+					JSplitPane splitPane = (JSplitPane) frame.getContentPane().getComponent(1);
+					JPanel topPanel = (JPanel) splitPane.getTopComponent();
+					JPanel candidatePanel = (JPanel) topPanel.getComponent(1);
 
-				// 레이아웃 및 화면 갱신
-				candidatePanel.invalidate();
-				candidatePanel.revalidate();
-				candidatePanel.repaint();
+					candidatePanel.removeAll();
+					candidatePanel.add(createCandidatePanel(currentGame.getCandidate1(), 1));
+					candidatePanel.add(createCandidatePanel(currentGame.getCandidate2(), 2));
 
-				updateLikeLabel();
-				loadComments(); // 댓글 갱신
+					// 레이아웃 및 화면 갱신
+					candidatePanel.invalidate();
+					candidatePanel.revalidate();
+					candidatePanel.repaint();
+
+					updateLikeLabel();
+					loadComments(); // 댓글 갱신
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
 				JOptionPane.showMessageDialog(frame, "UI 업데이트 중 오류 발생", "오류", JOptionPane.ERROR_MESSAGE);
@@ -273,43 +272,40 @@ public class GameScreen4 extends GameScreen {
 			return;
 		}
 		try {
-			lock.lock();
-			out.writeObject("CHAT");
-			out.writeObject(currentGame.getGameId());
-			out.writeObject(content);
-			out.flush();
-			commentInput.setText("");
+			synchronized (_lock) {
+				out.writeObject("CHAT");
+				out.writeObject(currentGame.getGameId());
+				out.writeObject(content);
+				out.flush();
+				commentInput.setText("");
+			}
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(frame, "댓글 작성 중 오류 발생");
 			e.printStackTrace();
-		} finally {
-			lock.unlock();
 		}
 	}
 
 	private void handleVote(int candidateNumber, JButton voteButton) {
 		try {
-			lock.lock();
-			voteButton.setEnabled(false);
-			voteButton.setText("투표 완료");
-			out.writeObject("VOTE");
-			out.writeObject(currentGame.getGameId());
-			out.writeObject(candidateNumber);
-			out.flush();
-			_thisUser.addPlayedGameId(currentGame.getGameId());
+			synchronized (_lock) {
+				voteButton.setEnabled(false);
+				voteButton.setText("투표 완료");
+				out.writeObject("VOTE");
+				out.writeObject(currentGame.getGameId());
+				out.writeObject(candidateNumber);
+				out.flush();
+				_thisUser.addPlayedGameId(currentGame.getGameId());
+			}
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(frame, "투표 중 오류 발생");
 			e.printStackTrace();
-		} finally {
-			lock.unlock();
 		}
 	}
 
 
 	private void loadComments() {
 		SwingUtilities.invokeLater(() -> {
-			lock.lock();
-			try {
+				synchronized (_lock) {
 					bestCommentSection.removeAll(); // 베스트 댓글 영역 초기화
 					normalCommentPanel.removeAll(); // 일반 댓글 영역 초기화
 
@@ -343,10 +339,7 @@ public class GameScreen4 extends GameScreen {
 					bestCommentSection.repaint();
 					normalCommentPanel.revalidate();
 					normalCommentPanel.repaint();
-
-			} finally {
-				lock.unlock();
-			}
+				}
         });
 	}
 
@@ -393,16 +386,16 @@ public class GameScreen4 extends GameScreen {
 
 	private void handleLikeComment(int commentId) {
 		try {
-			lock.lock();
-			out.writeObject("LIKE_CHAT");
-			out.writeObject(currentGame.getGameId());
-			out.writeObject(commentId);
-			out.flush();
+			synchronized (_lock) {
+
+				out.writeObject("LIKE_CHAT");
+				out.writeObject(currentGame.getGameId());
+				out.writeObject(commentId);
+				out.flush();
+			}
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(frame, "좋아요 처리 중 오류 발생");
 			e.printStackTrace();
-		} finally {
-			lock.unlock();
 		}
 	}
 
