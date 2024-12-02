@@ -1,4 +1,4 @@
-package client;
+package client.screen;
 
 import common.Game;
 import common.User;
@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+//RankingPage
 public class GameScreen5 extends GameScreen {
 
 	public GameScreen5(ObjectOutputStream out, ObjectInputStream in, String gameScreenTitle, User thisUser,

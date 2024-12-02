@@ -2,9 +2,11 @@ package server;
 
 import common.Comment;
 import common.Game;
+import common.User;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -29,6 +31,32 @@ public class GameManager {
 
     public ConcurrentHashMap<String, Game> getAllGames() {
         return games;
+    }
+
+    public HashMap<String, Game> filterGamesByVoted(User user) {
+        HashMap<String, Game> filteredGames = new HashMap<>();
+        if (user != null) {
+            for (String gameId : user.getPlayedGameIds()) {
+                Game game = findGameById(gameId);
+                if (game != null) {
+                    filteredGames.put(gameId, game);
+                }
+            }
+        }
+        return filteredGames;
+    }
+
+    public HashMap<String, Game> filterGamesById(User user) {
+        HashMap<String, Game> filteredGames = new HashMap<>();
+        if (user != null) {
+            for (String gameId : user.getCreatedGameIds()) {
+                Game game = findGameById(gameId);
+                if (game != null) {
+                    filteredGames.put(gameId, game);
+                }
+            }
+        }
+        return filteredGames;
     }
 
     public Game findGameById(String gameId) {

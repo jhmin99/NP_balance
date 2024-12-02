@@ -41,7 +41,7 @@ public class ClientHandler extends Thread {
 
                 switch (action) {
                     case "REGISTER", "LOGIN" -> handleUserAuth(action);
-                    case "LOGOUT" -> handleLogout();
+//                    case "LOGOUT" -> handleLogout();
                     case "GAME_LIST" -> sendAllGameList();
                     case "GAME_LIST_VOTED" -> sendGameListVoted();
                     case "GAME_LIST_ID" -> sendGameListById();
@@ -67,41 +67,42 @@ public class ClientHandler extends Thread {
     }
 
     private void handleUserAuth(String action) throws IOException, ClassNotFoundException {
-        String name = (String) input.readObject();
+        String id = (String) input.readObject();
         String password = (String) input.readObject();
 
         boolean result = "REGISTER".equals(action) ?
-                userManager.registerUser(name, password) :
-                userManager.authenticateUser(name, password);
+                userManager.registerUser(id, password) :
+                userManager.authenticateUser(id, password);
 
         synchronized (output) {
             output.writeObject(result ? action + "_SUCCESS" : action + "_FAIL");
             output.flush();
 
             if (result && "LOGIN".equals(action)) {
-                username = name;
-                User authenticatedUser = userManager.findUserByName(name);
+                username = id;
+                User authenticatedUser = userManager.findUserByName(id);
                 output.writeObject(authenticatedUser);
                 output.flush();
             }
         }
 }
 
-    private void handleLogout() throws IOException {
-        if (username == null) {
-            synchronized (output) {
-                sendResponse("LOGOUT_FAIL");
-                output.flush();
-            }
-            return;
-        }
-        username = null;
+//    private void handleLogout() throws IOException {
+//        if (username == null) {
+//            synchronized (output) {
+//                sendResponse("LOGOUT_FAIL");
+//                output.flush();
+//            }
+//            return;
+//        }
+//        username = null;
+//
+//        synchronized (output) {
+//            sendResponse("LOGOUT_SUCCESS");
+//            output.flush();
+//        }
+//    }
 
-        synchronized (output) {
-            sendResponse("LOGOUT_SUCCESS");
-            output.flush();
-        }
-    }
     private void sendAllGameList() throws IOException {
         synchronized (output) {
             sendResponse("GAME_LIST_SUCCESS");
@@ -128,20 +129,22 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("GAME_LIST_VOTE_SUCCESS");
-            output.writeObject(filterGamesByVoted());
+            output.writeObject(gameManager.filterGamesByVoted(currentUser));
             output.flush();
         }
     }
 
-    private void sendGameListById() throws IOException {
-        if (username == null) {
+    private void sendGameListById() throws IOException, ClassNotFoundException {
+        String targetName = (String) input.readObject();
+
+        if (targetName == null) {
             synchronized (output) {
                 sendResponse("GAME_LIST_ID_FAIL");
             }
             return;
         }
 
-        User currentUser = userManager.findUserByName(username);
+        User currentUser = userManager.findUserByName(targetName);
         if (currentUser == null) {
             synchronized (output) {
                 sendResponse("GAME_LIST_ID_FAIL");
@@ -151,7 +154,7 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("GAME_LIST_ID_SUCCESS");
-            output.writeObject(filterGamesById());
+            output.writeObject(gameManager.filterGamesById(currentUser));
             output.flush();
         }
     }
@@ -170,7 +173,6 @@ public class ClientHandler extends Thread {
         String author = (String) input.readObject();
         String candidate1Name = (String) input.readObject();
         String candidate2Name = (String) input.readObject();
-
         byte[] candidate1Data = (byte[]) input.readObject();
         byte[] candidate2Data = (byte[]) input.readObject();
 
@@ -193,7 +195,6 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("ADD_GAME_SUCCESS");
-            output.writeObject(game.getGameId());
             output.flush();
         }
     }
@@ -267,8 +268,9 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("LIKE_SUCCESS");
+            broadcastGameDetails(gameId);
         }
-        broadcastGameDetails(gameId);
+//        broadcastGameDetails(gameId);
     }
 
     private void handleVote() throws IOException, ClassNotFoundException {
@@ -290,8 +292,9 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("VOTE_SUCCESS");
+            broadcastGameDetails(gameId);
         }
-        broadcastGameDetails(gameId);
+//        broadcastGameDetails(gameId);
     }
 
     private void handleChat() throws IOException, ClassNotFoundException {
@@ -309,8 +312,9 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("CHAT_SUCCESS");
+            broadcastGameDetails(gameId);
         }
-        broadcastGameDetails(gameId);
+//        broadcastGameDetails(gameId);
     }
 
     private void handleLikeChat() throws IOException, ClassNotFoundException {
@@ -330,8 +334,9 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("LIKE_CHAT_SUCCESS");
+            broadcastGameDetails(gameId);
         }
-        broadcastGameDetails(gameId);
+//        broadcastGameDetails(gameId);
     }
 
     private void handleInvalidCommand(String action) throws IOException {
@@ -340,6 +345,7 @@ public class ClientHandler extends Thread {
         }
     }
 
+    //handleLike, handleVote, handleChat, handleLikeChat
     private void broadcastGameDetails(String gameId) throws IOException {
         gameManager.reloadGames();
         ConcurrentHashMap<String, Socket> socketMap = gameManager.getSocketMapById(gameId);
@@ -377,33 +383,5 @@ public class ClientHandler extends Thread {
             gameManager.removeSocketFromGame(currentRoomId, username);
         }
         System.out.println("Cleanup completed for client: " + username);
-    }
-
-    private HashMap<String, Game> filterGamesById() {
-        User user = userManager.findUserByName(username);
-        HashMap<String, Game> filteredGames = new HashMap<>();
-        if (user != null) {
-            for (String gameId : user.getCreatedGameIds()) {
-                Game game = gameManager.findGameById(gameId);
-                if (game != null) {
-                    filteredGames.put(gameId, game);
-                }
-            }
-        }
-        return filteredGames;
-    }
-
-    private HashMap<String, Game> filterGamesByVoted() {
-        User user = userManager.findUserByName(username);
-        HashMap<String, Game> filteredGames = new HashMap<>();
-        if (user != null) {
-            for (String gameId : user.getPlayedGameIds()) {
-                Game game = gameManager.findGameById(gameId);
-                if (game != null) {
-                    filteredGames.put(gameId, game);
-                }
-            }
-        }
-        return filteredGames;
     }
 }

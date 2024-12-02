@@ -1,4 +1,4 @@
-package client;
+package client.screen;
 
 import common.Game;
 import common.User;
@@ -11,6 +11,7 @@ import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+//GameListPage
 public class GameScreen2 extends GameScreen {
 
 	private JPanel gameListPanel;  // 게임 목록 패널을 전역으로 선언
@@ -98,7 +99,7 @@ public class GameScreen2 extends GameScreen {
 		logoutButton.addActionListener(e -> logout());
 		createGameButton.addActionListener(e -> showGameCreationScreen());
 		voteGameButton.addActionListener(e -> showVotedGamesScreen());
-		createdGameButton.addActionListener(e -> showCreatedGamesScreen());
+		createdGameButton.addActionListener(e -> showCreatedGamesScreenByName(_thisUser.getName()));
 		rankingButton.addActionListener(e -> showRankingScreen());
 		allGameButton.addActionListener(e -> fetchGameList(gameListPanel, scrollPane));
 	}
@@ -244,10 +245,11 @@ public class GameScreen2 extends GameScreen {
 	}
 
 
-	private void showCreatedGamesScreen() {
+	private void showCreatedGamesScreenByName(String userName) {
 		try {
 			synchronized (_lock) {
 				out.writeObject("GAME_LIST_ID");  // '생성한 게임' 목록 요청
+				out.writeObject(userName);
 				out.flush();
 
 				String response = (String) in.readObject();

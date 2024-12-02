@@ -17,17 +17,17 @@ public class UserManager {
         return users.get(name);
     }
 
-    public boolean registerUser(String name, String password) {
-        if (users.containsKey(name)) {
+    public boolean registerUser(String id, String password) {
+        if (users.containsKey(id)) {
             return false; // 이미 존재하는 사용자 이름
         }
-        users.put(name, new User(name, password));
+        users.put(id, new User(id, password));
         saveUsers();
         return true;
     }
 
-    public boolean authenticateUser(String name, String password) {
-        User user = users.get(name);
+    public boolean authenticateUser(String id, String password) {
+        User user = users.get(id);
         return user != null && user.getPassword().equals(password);
     }
 
