@@ -52,19 +52,6 @@ public class GameScreen4 extends GameScreen {
 		// 상단 게임 정보 및 후보자 영역
 		JPanel topPanel = new JPanel(new BorderLayout());
 
-		// '뒤로 가기' 버튼 추가
-//		JButton backButton = new JButton("뒤로 가기");
-//		backButton.setFont(new Font("맑은 고딕", Font.PLAIN, 14));
-//		backButton.setPreferredSize(new Dimension(100, 40));
-//
-//		backButton.addActionListener(e -> handleExitGame());
-//
-//		JPanel backPanel = new JPanel();
-//		backPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-//		backPanel.add(backButton);
-//
-//		topPanel.add(backPanel, BorderLayout.WEST);
-
 		// 게임 정보 패널
 		JPanel gameInfoPanel = new JPanel(new GridLayout(4, 1, 5, 5));  // 4개 항목을 세로로 배치
 		JLabel titleLabel = new JLabel("게임: " + currentGame.getTitle());
