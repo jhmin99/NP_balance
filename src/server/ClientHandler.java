@@ -41,7 +41,7 @@ public class ClientHandler extends Thread {
 
                 switch (action) {
                     case "REGISTER", "LOGIN" -> handleUserAuth(action);
-                    case "LOGOUT" -> handleLogout();
+//                    case "LOGOUT" -> handleLogout();
                     case "GAME_LIST" -> sendAllGameList();
                     case "GAME_LIST_VOTED" -> sendGameListVoted();
                     case "GAME_LIST_ID" -> sendGameListById();
@@ -87,21 +87,22 @@ public class ClientHandler extends Thread {
         }
 }
 
-    private void handleLogout() throws IOException {
-        if (username == null) {
-            synchronized (output) {
-                sendResponse("LOGOUT_FAIL");
-                output.flush();
-            }
-            return;
-        }
-        username = null;
+//    private void handleLogout() throws IOException {
+//        if (username == null) {
+//            synchronized (output) {
+//                sendResponse("LOGOUT_FAIL");
+//                output.flush();
+//            }
+//            return;
+//        }
+//        username = null;
+//
+//        synchronized (output) {
+//            sendResponse("LOGOUT_SUCCESS");
+//            output.flush();
+//        }
+//    }
 
-        synchronized (output) {
-            sendResponse("LOGOUT_SUCCESS");
-            output.flush();
-        }
-    }
     private void sendAllGameList() throws IOException {
         synchronized (output) {
             sendResponse("GAME_LIST_SUCCESS");
@@ -128,7 +129,7 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("GAME_LIST_VOTE_SUCCESS");
-            output.writeObject(filterGamesByVoted());
+            output.writeObject(gameManager.filterGamesByVoted(currentUser));
             output.flush();
         }
     }
@@ -270,8 +271,9 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("LIKE_SUCCESS");
+            broadcastGameDetails(gameId);
         }
-        broadcastGameDetails(gameId);
+//        broadcastGameDetails(gameId);
     }
 
     private void handleVote() throws IOException, ClassNotFoundException {
@@ -293,8 +295,9 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("VOTE_SUCCESS");
+            broadcastGameDetails(gameId);
         }
-        broadcastGameDetails(gameId);
+//        broadcastGameDetails(gameId);
     }
 
     private void handleChat() throws IOException, ClassNotFoundException {
@@ -312,8 +315,9 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("CHAT_SUCCESS");
+            broadcastGameDetails(gameId);
         }
-        broadcastGameDetails(gameId);
+//        broadcastGameDetails(gameId);
     }
 
     private void handleLikeChat() throws IOException, ClassNotFoundException {
@@ -333,8 +337,9 @@ public class ClientHandler extends Thread {
 
         synchronized (output) {
             sendResponse("LIKE_CHAT_SUCCESS");
+            broadcastGameDetails(gameId);
         }
-        broadcastGameDetails(gameId);
+//        broadcastGameDetails(gameId);
     }
 
     private void handleInvalidCommand(String action) throws IOException {
@@ -343,6 +348,7 @@ public class ClientHandler extends Thread {
         }
     }
 
+    //handleLike, handleVote, handleChat, handleLikeChat
     private void broadcastGameDetails(String gameId) throws IOException {
         gameManager.reloadGames();
         ConcurrentHashMap<String, Socket> socketMap = gameManager.getSocketMapById(gameId);

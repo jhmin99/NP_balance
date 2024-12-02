@@ -1,4 +1,4 @@
-package client;
+package client.screen;
 
 import common.Game;
 import common.User;
@@ -12,6 +12,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.HashMap;
 
+//CreateGamePage
 public class GameScreen3 extends GameScreen {
 
 	private File candidate1ImageFile = null;
@@ -124,48 +125,7 @@ public class GameScreen3 extends GameScreen {
 		candidate2ImageButton.addActionListener(e -> uploadImage(candidate2ImagePreview, 2));
 
 		// 게임 생성 버튼 동작
-		createButton.addActionListener(e -> {
-			String gameTitle = gameTitleField.getText();
-			String candidate1Name = candidate1NameField.getText();
-			String candidate2Name = candidate2NameField.getText();
-
-			if (gameTitle.isEmpty() || candidate1Name.isEmpty() || candidate2Name.isEmpty() || candidate1ImageFile == null || candidate2ImageFile == null) {
-				JOptionPane.showMessageDialog(frame, "모든 필드와 이미지를 입력해야 합니다.", "입력 오류", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-
-			try {
-				byte[] candidate1ImageData = loadImage(candidate1ImageFile);
-				byte[] candidate2ImageData = loadImage(candidate2ImageFile);
-
-				synchronized (_lock) {
-					out.writeObject("ADD_GAME");
-					out.writeObject(gameTitle);
-					out.writeObject(_thisUser.getName());
-					out.writeObject(candidate1Name);
-					out.writeObject(candidate2Name);
-					out.writeObject(candidate1ImageData);
-					out.writeObject(candidate2ImageData);
-					out.flush();
-
-					String response = (String) in.readObject();
-					if ("ADD_GAME_SUCCESS".equals(response)) {
-						String gameId = (String) in.readObject();
-						_thisUser.addCreatedGameId(gameId);
-
-						JOptionPane.showMessageDialog(frame, "게임 생성 성공!");
-						GameScreen2 gameScreen2 = new GameScreen2(out, in, "게임 목록", _thisUser, _gameList, _userList);
-						gameScreen2.showScreen();
-						closeScreen();
-					} else {
-						JOptionPane.showMessageDialog(frame, "게임 생성 실패");
-					}
-				}
-			} catch (Exception ex) {
-				JOptionPane.showMessageDialog(frame, "서버와의 통신 중 오류 발생", "오류", JOptionPane.ERROR_MESSAGE);
-				ex.printStackTrace();
-			}
-		});
+		createButton.addActionListener(e -> createGame(gameTitleField, candidate1NameField, candidate2NameField));
 
 		frame.add(titleLabel, BorderLayout.NORTH);
 		frame.add(mainPanel, BorderLayout.CENTER);
@@ -203,6 +163,46 @@ public class GameScreen3 extends GameScreen {
 		}
 	}
 
+	private void createGame(JTextField gameTitleField, JTextField candidate1NameField, JTextField candidate2NameField) {
+		String gameTitle = gameTitleField.getText();
+		String candidate1Name = candidate1NameField.getText();
+		String candidate2Name = candidate2NameField.getText();
+
+		if (gameTitle.isEmpty() || candidate1Name.isEmpty() || candidate2Name.isEmpty() || candidate1ImageFile == null || candidate2ImageFile == null) {
+			JOptionPane.showMessageDialog(frame, "모든 필드와 이미지를 입력해야 합니다.", "입력 오류", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
+		try {
+			byte[] candidate1ImageData = loadImage(candidate1ImageFile);
+			byte[] candidate2ImageData = loadImage(candidate2ImageFile);
+
+			synchronized (_lock) {
+				out.writeObject("ADD_GAME");
+				out.writeObject(gameTitle);
+				out.writeObject(_thisUser.getName());
+				out.writeObject(candidate1Name);
+				out.writeObject(candidate2Name);
+				out.writeObject(candidate1ImageData);
+				out.writeObject(candidate2ImageData);
+				out.flush();
+
+				String response = (String) in.readObject();
+				if ("ADD_GAME_SUCCESS".equals(response)) {
+					JOptionPane.showMessageDialog(frame, "게임 생성 성공!");
+					GameScreen2 gameScreen2 = new GameScreen2(out, in, "게임 목록", _thisUser, _gameList, _userList);
+					gameScreen2.showScreen();
+					closeScreen();
+				} else {
+					JOptionPane.showMessageDialog(frame, "게임 생성 실패");
+				}
+			}
+		} catch (Exception ex) {
+			JOptionPane.showMessageDialog(frame, "서버와의 통신 중 오류 발생", "오류", JOptionPane.ERROR_MESSAGE);
+			ex.printStackTrace();
+		}
+	}
+
 	private byte[] loadImage(File imageFile) {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 			BufferedImage image = ImageIO.read(imageFile);
@@ -214,4 +214,5 @@ public class GameScreen3 extends GameScreen {
 			return null;
 		}
 	}
+
 }

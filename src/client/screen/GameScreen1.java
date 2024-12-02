@@ -1,4 +1,4 @@
-package client;
+package client.screen;
 
 import common.Game;
 import common.User;
@@ -9,6 +9,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.HashMap;
 
+//LoginPage
 public class GameScreen1 extends GameScreen {
 	public GameScreen1(ObjectOutputStream out, ObjectInputStream in, String gameScreenTitle, User thisUser,
 					   HashMap<String, Game> gameList, HashMap<String, User> userList) {

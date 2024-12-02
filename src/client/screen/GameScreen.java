@@ -1,4 +1,4 @@
-package client;
+package client.screen;
 
 import common.Game;
 import common.User;

@@ -1,5 +1,6 @@
 package client;
 
+import client.screen.GameScreen1;
 import common.Game;
 import common.User;
 
@@ -20,7 +21,7 @@ public class ClientMain {
 			socket = new Socket(SERVER_ADDRESS, PORT);
 			out = new ObjectOutputStream(socket.getOutputStream());
 			out.flush();
-			ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+			in = new ObjectInputStream(socket.getInputStream());
 
 			User user = new User();
 			HashMap<String, Game> gameList = new HashMap<>();
