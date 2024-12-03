@@ -189,6 +189,8 @@ public class GameScreen3 extends GameScreen {
 
 				String response = (String) in.readObject();
 				if ("ADD_GAME_SUCCESS".equals(response)) {
+					String gameId = (String) in.readObject();
+					_thisUser.addCreatedGameId(gameId);
 					JOptionPane.showMessageDialog(frame, "게임 생성 성공!");
 					GameScreen2 gameScreen2 = new GameScreen2(out, in, "게임 목록", _thisUser, _gameList, _userList);
 					gameScreen2.showScreen();
