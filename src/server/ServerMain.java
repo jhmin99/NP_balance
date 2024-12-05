@@ -13,8 +13,8 @@ public class ServerMain {
         GameManager gameManager = new GameManager();
 
         try {
-            ServerSocket serverSocket = new ServerSocket(PORT);
-            // ServerSocket serverSocket = new ServerSocket(PORT, 50, InetAddress.getByName("0.0.0.0")); // 다른 기기 접근
+            // ServerSocket serverSocket = new ServerSocket(PORT);
+            ServerSocket serverSocket = new ServerSocket(PORT, 50, InetAddress.getByName("0.0.0.0")); // 다른 기기 접근
             System.out.println("Server is listening on port " + PORT);
 
             while (true) {

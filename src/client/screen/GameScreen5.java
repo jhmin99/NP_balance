@@ -75,6 +75,8 @@ public class GameScreen5 extends GameScreen {
 		bottomPanel.add(backButton, BorderLayout.WEST);
 		frame.add(bottomPanel, BorderLayout.SOUTH);
 
+		// 프레임을 화면 중앙에 위치하도록
+		frame.setLocationRelativeTo(null);
 		// 프레임 표시
 		frame.setVisible(true);
 

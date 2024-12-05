@@ -38,7 +38,7 @@ public class GameScreen4 extends GameScreen {
 	@Override
 	public void showScreen() {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(1000, 800); // 적절한 화면 크기
+		frame.setSize(1000, 1000); // 적절한 화면 크기
 		frame.setLayout(new BorderLayout());
 
 		// 최상단 '뒤로 가기' 버튼 패널
